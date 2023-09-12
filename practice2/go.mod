@@ -1,4 +1,4 @@
-module github.com/victoriamsuarez/web-server
+module github.com/victoriamsuarez/web-server/practice2
 
 go 1.21.0
 
