@@ -5,9 +5,10 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/victoriamsuarez/web-server/practice4/cmd/handler"
-	"github.com/victoriamsuarez/web-server/practice4/internal/domain"
-	"github.com/victoriamsuarez/web-server/practice4/internal/product"
+	"github.com/joho/godotenv"
+	"github.com/victoriamsuarez/web-server/cmd/handler"
+	"github.com/victoriamsuarez/web-server/internal/domain"
+	"github.com/victoriamsuarez/web-server/internal/product"
 )
 
 // PUNTO DE ENTRADA
@@ -15,23 +16,31 @@ func main() {
 	var productsList = []domain.Product{}
 	loadProducts("../../internal/docs/data/products.json", &productsList)
 
+	if err := godotenv.Load("../../.env"); err != nil {
+		panic(err)
+	}
+
+	token := os.Getenv("TOKEN")
 	repo := product.NewRepository(productsList)
 	service := product.NewService(repo)
-	productHandler := handler.NewProductHandler(service)
+	productHandler := handler.NewProductHandler(service, token)
 
 	r := gin.Default()
 
-	r.GET("/ping", func(c *gin.Context) { c.String(200, "pong") })
+	r.GET("/ping", func(c *gin.Context) {
+		c.String(200, "pong")
+	})
+
 	products := r.Group("/products")
-	{
-		products.GET("", productHandler.GeAll())
-		products.GET(":id", productHandler.GetById())
-		products.GET("/search", productHandler.Search())
-		products.POST("", productHandler.Post())
-		products.PUT(":id", productHandler.Put())
-		products.PATCH(":id", productHandler.Patch())
-		products.DELETE(":id", productHandler.Delete())
-	}
+
+	products.GET("", productHandler.GetAllProducts())
+	products.GET(":id", productHandler.GetProductById())
+	products.GET("/search", productHandler.SearchProductPrice())
+	products.POST("", productHandler.NewProduct())
+	products.PUT(":id", productHandler.UpdateProductPut())
+	products.PATCH(":id", productHandler.UpdateProductPatch())
+	products.DELETE(":id", productHandler.DeleteProduct())
+
 	r.Run(":8080")
 }
 
