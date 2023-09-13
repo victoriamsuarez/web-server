@@ -5,15 +5,15 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/victoriamsuarez/web-server/practice3/cmd/handler"
-	"github.com/victoriamsuarez/web-server/practice3/internal/domain"
-	"github.com/victoriamsuarez/web-server/practice3/internal/product"
+	"github.com/victoriamsuarez/web-server/practice4/cmd/handler"
+	"github.com/victoriamsuarez/web-server/practice4/internal/domain"
+	"github.com/victoriamsuarez/web-server/practice4/internal/product"
 )
 
 // PUNTO DE ENTRADA
 func main() {
 	var productsList = []domain.Product{}
-	loadProducts("products.json", &productsList)
+	loadProducts("../../internal/docs/data/products.json", &productsList)
 
 	repo := product.NewRepository(productsList)
 	service := product.NewService(repo)
@@ -28,6 +28,9 @@ func main() {
 		products.GET(":id", productHandler.GetById())
 		products.GET("/search", productHandler.Search())
 		products.POST("", productHandler.Post())
+		products.PUT(":id", productHandler.Put())
+		products.PATCH(":id", productHandler.Patch())
+		products.DELETE(":id", productHandler.Delete())
 	}
 	r.Run(":8080")
 }

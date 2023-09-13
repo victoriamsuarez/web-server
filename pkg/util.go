@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/victoriamsuarez/web-server/practice3/internal/domain"
+	"github.com/victoriamsuarez/web-server/practice4/internal/domain"
 )
 
 func FillProducts(path string) []domain.Product {

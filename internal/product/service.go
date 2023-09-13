@@ -3,7 +3,7 @@ package product
 import (
 	"errors"
 
-	"github.com/victoriamsuarez/web-server/practice3/internal/domain"
+	"github.com/victoriamsuarez/web-server/practice4/internal/domain"
 )
 
 // RECIBE INFORMACION DEL HANDLER Y LA RESUELVE
@@ -18,6 +18,9 @@ type Service interface {
 	GetById(id int) (domain.Product, error)
 	GetByPrice(minPrice float64) ([]domain.Product, error)
 	Create(p domain.Product) (domain.Product, error)
+	Update(id int, name string, quantity int, codeValue string, isPublished bool, expiration string, price float64) (domain.Product, error)
+	UpdatePrice(id int, price float64) (domain.Product, error)
+	Delete(id int) error
 }
 
 func NewService(repo Repository) Service {
@@ -54,4 +57,30 @@ func (s *productService) Create(p domain.Product) (domain.Product, error) {
 		return domain.Product{}, err
 	}
 	return p, nil
+}
+
+func (s *productService) Update(id int, name string, quantity int, codeValue string, isPublished bool, expiration string, price float64) (domain.Product, error) {
+	var p domain.Product
+	p, err := s.repository.Update(id, name, quantity, codeValue, isPublished, expiration, price)
+	if err != nil {
+		return domain.Product{}, err
+	}
+	return p, nil
+}
+
+func (s *productService) UpdatePrice(id int, price float64) (domain.Product, error) {
+	var p domain.Product
+	p, err := s.repository.UpdatePrice(id, price)
+	if err != nil {
+		return domain.Product{}, err
+	}
+	return p, nil
+}
+
+func (s *productService) Delete(id int) error {
+	err := s.repository.Delete(id)
+	if err != nil {
+		return err
+	}
+	return nil
 }
