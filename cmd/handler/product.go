@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/victoriamsuarez/web-server/practice4/internal/domain"
-	"github.com/victoriamsuarez/web-server/practice4/internal/product"
+	"github.com/victoriamsuarez/web-server/internal/domain"
+	"github.com/victoriamsuarez/web-server/internal/product"
 )
 
 // URLS DE LOS PRODUCTOS
@@ -16,61 +16,60 @@ import (
 //
 
 type productHandler struct {
-	s product.Service
+	s     product.Service
+	token string
 }
 
-func NewProductHandler(s product.Service) *productHandler {
-	return &productHandler{
-		s: s,
-	}
+func NewProductHandler(s product.Service, token string) *productHandler {
+	handler := &productHandler{s: s, token: token}
+	return handler
 }
 
-func (h *productHandler) GeAll() gin.HandlerFunc {
-
-	return func(c *gin.Context) {
+func (h *productHandler) GetAllProducts() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
 		products, _ := h.s.GetAll()
-		c.JSON(200, products)
+		ctx.JSON(200, products)
 	}
 
 }
 
-func (h *productHandler) GetById() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		idParam := c.Param("id")
+func (h *productHandler) GetProductById() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		idParam := ctx.Param("id")
 		id, err := strconv.Atoi(idParam)
 		if err != nil {
-			c.JSON(400, gin.H{"error": "invalid id"})
+			ctx.JSON(400, gin.H{"error": "invalid id"})
 			return
 		}
 		product, err := h.s.GetById(id)
 		if err != nil {
-			c.JSON(404, gin.H{"error": "product not found"})
+			ctx.JSON(404, gin.H{"error": "product not found"})
 			return
 		}
-		c.JSON(200, product)
+		ctx.JSON(200, product)
 	}
 }
 
-func (h *productHandler) Search() gin.HandlerFunc {
-	return func(c *gin.Context) {
+func (h *productHandler) SearchProductPrice() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
 		// Obtener el parámetro de la URL
-		priceQuery := c.Query("priceGt")
+		priceQuery := ctx.Query("priceGt")
 
 		// Convierte el string (que viene por parámetro) a un float64
 		priceGt, err := strconv.ParseFloat(priceQuery, 64)
 		if err != nil {
-			c.JSON(400, "error: invalid price")
+			ctx.JSON(400, "error: invalid price")
 			return
 		}
 
 		products, err := h.s.GetByPrice(priceGt)
 		if err != nil {
-			c.JSON(404, gin.H{"error": "no products found"})
+			ctx.JSON(404, gin.H{"error": "no products found"})
 			return
 		}
 
 		// En caso de encontrar el producto por id devuelvo el producto guardado en la variable targetProd
-		c.JSON(200, products)
+		ctx.JSON(200, products)
 	}
 }
 
@@ -95,8 +94,12 @@ func validateData(p *domain.Product) (bool, error) {
 }
 
 // Post crear un producto nuevo
-func (h *productHandler) Post() gin.HandlerFunc {
+func (h *productHandler) NewProduct() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		if ctx.GetHeader("TOKEN") != h.token {
+			ctx.JSON(403, gin.H{"error": "invalid token"})
+			return
+		}
 		var product domain.Product
 		err := ctx.ShouldBindJSON(&product)
 		if err != nil {
@@ -122,8 +125,12 @@ func (h *productHandler) Post() gin.HandlerFunc {
 	}
 }
 
-func (h *productHandler) Put() gin.HandlerFunc {
+func (h *productHandler) UpdateProductPut() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		if ctx.GetHeader("TOKEN") != h.token {
+			ctx.JSON(403, gin.H{"error": "invalid token"})
+			return
+		}
 		var product domain.Product
 
 		// return func(c *gin.Context) {
@@ -156,9 +163,21 @@ func (h *productHandler) Put() gin.HandlerFunc {
 	}
 }
 
-func (h *productHandler) Patch() gin.HandlerFunc {
+func (h *productHandler) UpdateProductPatch() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		var product domain.Product
+		if ctx.GetHeader("TOKEN") != h.token {
+			ctx.JSON(403, gin.H{"error": "invalid token"})
+			return
+		}
+		type Request struct {
+			Name        string  `json:"name,omitempty"`
+			Quantity    int     `json:"quantity,omitempty"`
+			CodeValue   string  `json:"code_value,omitempty"`
+			IsPublished bool    `json:"is_published,omitempty"`
+			Expiration  string  `json:"expiration,omitempty"`
+			Price       float64 `json:"price,omitempty"`
+		}
+		var req Request
 
 		// return func(c *gin.Context) {
 		idParam := ctx.Param("id")
@@ -167,16 +186,27 @@ func (h *productHandler) Patch() gin.HandlerFunc {
 			ctx.JSON(400, gin.H{"error": "invalid id"})
 			return
 		}
-		err = ctx.ShouldBindJSON(&product)
+		err = ctx.ShouldBindJSON(&req)
 		if err != nil {
 			ctx.JSON(400, gin.H{"error": "invalid product"})
 			return
 		}
-		if product.Price == 0.0 {
-			ctx.JSON(400, gin.H{"error": "price is required"})
+
+		update := domain.Product{
+			Name:         req.Name,
+			Quantity:     req.Quantity,
+			Code_Value:   req.CodeValue,
+			Is_Published: req.IsPublished,
+			Expiration:   req.Expiration,
+			Price:        req.Price,
+		}
+
+		valid, err := validateData(&domain.Product{})
+		if !valid {
+			ctx.JSON(400, gin.H{"error": err.Error()})
 			return
 		}
-		p, err := h.s.UpdatePrice(int(id), product.Price)
+		p, err := h.s.Update(id, update.Name, update.Quantity, update.Code_Value, update.Is_Published, update.Expiration, update.Price)
 		if err != nil {
 			ctx.JSON(404, gin.H{"error": err.Error()})
 		}
@@ -184,8 +214,12 @@ func (h *productHandler) Patch() gin.HandlerFunc {
 	}
 }
 
-func (h *productHandler) Delete() gin.HandlerFunc {
+func (h *productHandler) DeleteProduct() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		if ctx.GetHeader("TOKEN") != h.token {
+			ctx.JSON(403, gin.H{"error": "invalid token"})
+			return
+		}
 		idParam := ctx.Param("id")
 		id, err := strconv.Atoi(idParam)
 		if err != nil {

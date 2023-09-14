@@ -3,14 +3,14 @@ package product
 import (
 	"errors"
 
-	"github.com/victoriamsuarez/web-server/practice4/internal/domain"
+	"github.com/victoriamsuarez/web-server/internal/domain"
 )
 
 // RECIBE INFORMACION DEL HANDLER Y LA RESUELVE
 
 // Inyección de dependencias
 type productService struct {
-	repository Repository
+	repository RepositoryJson
 }
 
 type Service interface {
@@ -19,7 +19,6 @@ type Service interface {
 	GetByPrice(minPrice float64) ([]domain.Product, error)
 	Create(p domain.Product) (domain.Product, error)
 	Update(id int, name string, quantity int, codeValue string, isPublished bool, expiration string, price float64) (domain.Product, error)
-	UpdatePrice(id int, price float64) (domain.Product, error)
 	Delete(id int) error
 }
 
@@ -62,15 +61,6 @@ func (s *productService) Create(p domain.Product) (domain.Product, error) {
 func (s *productService) Update(id int, name string, quantity int, codeValue string, isPublished bool, expiration string, price float64) (domain.Product, error) {
 	var p domain.Product
 	p, err := s.repository.Update(id, name, quantity, codeValue, isPublished, expiration, price)
-	if err != nil {
-		return domain.Product{}, err
-	}
-	return p, nil
-}
-
-func (s *productService) UpdatePrice(id int, price float64) (domain.Product, error) {
-	var p domain.Product
-	p, err := s.repository.UpdatePrice(id, price)
 	if err != nil {
 		return domain.Product{}, err
 	}

@@ -1,27 +1,26 @@
 package main
 
 import (
-	"encoding/json"
 	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/victoriamsuarez/web-server/cmd/handler"
-	"github.com/victoriamsuarez/web-server/internal/domain"
 	"github.com/victoriamsuarez/web-server/internal/product"
+	"github.com/victoriamsuarez/web-server/pkg/store"
 )
 
 // PUNTO DE ENTRADA
 func main() {
-	var productsList = []domain.Product{}
-	loadProducts("../../internal/docs/data/products.json", &productsList)
+
+	storage := store.NewStore("../../internal/docs/data/products.json")
 
 	if err := godotenv.Load("../../.env"); err != nil {
 		panic(err)
 	}
 
 	token := os.Getenv("TOKEN")
-	repo := product.NewRepository(productsList)
+	repo := product.NewRepositoryJson(storage)
 	service := product.NewService(repo)
 	productHandler := handler.NewProductHandler(service, token)
 
@@ -45,13 +44,13 @@ func main() {
 }
 
 // loadProducts carga los productos desde un archivo json
-func loadProducts(path string, list *[]domain.Product) {
-	file, err := os.ReadFile(path)
-	if err != nil {
-		panic(err)
-	}
-	err = json.Unmarshal([]byte(file), &list)
-	if err != nil {
-		panic(err)
-	}
-}
+// func loadProducts(path string, list *[]domain.Product) {
+// 	file, err := os.ReadFile(path)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	err = json.Unmarshal([]byte(file), &list)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// }
